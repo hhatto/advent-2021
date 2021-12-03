@@ -9,7 +9,7 @@ export AppWindow := Window {
         }
         Button {
             text: "Increase value";
-            clicked => { 
+            clicked => {
                 request-increase-value();
             }
         }
