@@ -1,6 +1,8 @@
 import { Button, VerticalBox } from "sixtyfps_widgets.60";
 
 export AppWindow := Window {
+    preferred-height: 300px;
+    preferred-width: 300px;
     property<int> counter: 42;
     callback request-increase-value(int);
     VerticalBox { 
