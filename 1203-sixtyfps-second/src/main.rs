@@ -8,6 +8,11 @@ fn main() {
         let ui = ui_handle.unwrap();
         ui.set_counter(ui.get_counter() + 1);
     });
+    let ui_handle = ui.as_weak();
+    ui.on_request_decrease_value(move || {
+        let ui = ui_handle.unwrap();
+        ui.set_counter(ui.get_counter() - 1);
+    });
 
     ui.run();
 }

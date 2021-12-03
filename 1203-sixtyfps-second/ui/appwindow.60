@@ -3,6 +3,7 @@ import { Button, VerticalBox } from "sixtyfps_widgets.60";
 export AppWindow := Window {
     property<int> counter: 42;
     callback request-increase-value();
+    callback request-decrease-value();
     VerticalBox { 
         Text {
             text: "Counter: \{counter}";
@@ -11,6 +12,12 @@ export AppWindow := Window {
             text: "Increase value";
             clicked => {
                 request-increase-value();
+            }
+        }
+        Button {
+            text: "Decrease value";
+            clicked => {
+                request-decrease-value();
             }
         }
      }
