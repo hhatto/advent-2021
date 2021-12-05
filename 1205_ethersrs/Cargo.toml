@@ -1,0 +1,9 @@
+[package]
+name = "ethersrs-examples"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+ethers = { git = "https://github.com/gakonst/ethers-rs" }
+tokio = { version = "1.5", features = ["macros", "rt-multi-thread"] }
