@@ -2,9 +2,7 @@ use ethers::{prelude::*};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let provider = Provider::<Http>::try_from(
-        "http://localhost:8545/"
-    )?;
+    let provider = Provider::<Http>::try_from("http://localhost:8545/")?;
 
     let address = provider.resolve_name("vitalik.eth").await?;
     println!("{:?}", address);
