@@ -1,11 +1,9 @@
 use std::io::stdout;
 use std::fs::File;
-use std::io::{BufReader, BufRead};
 
 use clap::{Parser};
 use crossterm::{
-    cursor::position,
-    cursor::{DisableBlinking, EnableBlinking, MoveTo, MoveUp, MoveDown, MoveLeft, MoveRight, RestorePosition, SavePosition},
+    cursor::{DisableBlinking, MoveTo, MoveUp, MoveDown, MoveLeft, MoveRight, RestorePosition, SavePosition},
     event::{read, Event, KeyCode, KeyEvent},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType},
@@ -20,39 +18,60 @@ struct Opts {
 
 fn less_loop(filename: &str) -> Result<()> {
     let f = File::open(filename)?;
-    let buf = BufReader::new(f);
-    let mut lines: Vec<String> = Vec::new();
+    let lines = ropey::Rope::from_reader(f)?;
+    let mut is_search_mode = false;
 
-
-    for line in buf.lines() {
-        lines.push(line?);
-        break
+    for idx in 0..50 {
+        println!("{}", lines.line(idx));
+        execute!(stdout(), MoveTo(0, idx as u16))?;
     }
 
     loop {
-        match read()? {
-            Event::Key(KeyEvent {
-                code: KeyCode::Char('h'),
-                modifiers: _,
-            }) => execute!(stdout(), MoveLeft(1))?,
-            Event::Key(KeyEvent {
-                code: KeyCode::Char('j'),
-                modifiers: _,
-            }) => execute!(stdout(), MoveDown(1))?,
-            Event::Key(KeyEvent {
-                code: KeyCode::Char('k'),
-                modifiers: _,
-            }) => execute!(stdout(), MoveUp(1))?,
-            Event::Key(KeyEvent {
-                code: KeyCode::Char('l'),
-                modifiers: _,
-            }) => execute!(stdout(), MoveRight(1))?,
-            Event::Key(KeyEvent {
-                code: KeyCode::Esc,
-                modifiers: _,
-            }) => break,
-            _ => (),
-        };
+        let event = read()?;
+
+        if is_search_mode {
+            match event {
+                Event::Key(KeyEvent {
+                    code: KeyCode::Esc,
+                    modifiers: _,
+                }) => {
+                    is_search_mode = false;
+                    execute!(stdout(), RestorePosition)?;
+                },
+                _ => (),
+            };
+        } else {
+            match event {
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('h'),
+                    modifiers: _,
+                }) => execute!(stdout(), MoveLeft(1))?,
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('j'),
+                    modifiers: _,
+                }) => execute!(stdout(), MoveDown(1))?,
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('k'),
+                    modifiers: _,
+                }) => execute!(stdout(), MoveUp(1))?,
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('l'),
+                    modifiers: _,
+                }) => execute!(stdout(), MoveRight(1))?,
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('/'),
+                    modifiers: _,
+                }) => {
+                    is_search_mode = true;
+                    execute!(stdout(), SavePosition, MoveTo(0, 0))?;
+                },
+                Event::Key(KeyEvent {
+                    code: KeyCode::Esc,
+                    modifiers: _,
+                }) => break,
+                _ => (),
+            };
+        }
     }
 
     Ok(())
