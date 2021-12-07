@@ -6,6 +6,8 @@ use crossterm::{
     cursor::{DisableBlinking, MoveTo, MoveUp, MoveDown, MoveLeft, MoveRight, RestorePosition, SavePosition},
     event::{read, Event, KeyCode, KeyEvent},
     execute,
+    style::Print,
+    terminal,
     terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType},
     Result,
 };
@@ -19,12 +21,19 @@ struct Opts {
 fn less_loop(filename: &str) -> Result<()> {
     let f = File::open(filename)?;
     let lines = ropey::Rope::from_reader(f)?;
+    let line_count = lines.len_lines();
     let mut is_search_mode = false;
 
-    for idx in 0..50 {
-        println!("{}", lines.line(idx));
+    let (_, rows) = terminal::size()?;
+
+    for idx in 0..rows {
+        println!("{}", lines.line(idx as usize));
         execute!(stdout(), MoveTo(0, idx as u16))?;
+        if idx as usize >= line_count - 1 {
+            break
+        }
     }
+    execute!(stdout(), MoveTo(0, 0))?;
 
     loop {
         let event = read()?;
@@ -41,6 +50,7 @@ fn less_loop(filename: &str) -> Result<()> {
                 _ => (),
             };
         } else {
+            execute!(stdout(), SavePosition)?;
             match event {
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('h'),
@@ -63,7 +73,11 @@ fn less_loop(filename: &str) -> Result<()> {
                     modifiers: _,
                 }) => {
                     is_search_mode = true;
-                    execute!(stdout(), SavePosition, MoveTo(0, 0))?;
+                    execute!(
+                        stdout(),
+                        MoveTo(0, rows+1),
+                        Print("/"),
+                    )?;
                 },
                 Event::Key(KeyEvent {
                     code: KeyCode::Esc,
