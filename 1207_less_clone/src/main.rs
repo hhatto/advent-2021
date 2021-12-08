@@ -71,11 +71,11 @@ fn less_loop(filename: &str) -> Result<()> {
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('u'),
                     modifiers: KeyModifiers::CONTROL,
-                }) => execute!(stdout(), MoveUp(10))?,
+                }) => execute!(stdout(), MoveUp(20))?,
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('d'),
                     modifiers: KeyModifiers::CONTROL,
-                }) => execute!(stdout(), MoveDown(10))?,
+                }) => execute!(stdout(), MoveDown(20))?,
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('/'),
                     modifiers: _,
