@@ -3,12 +3,12 @@ use std::fs::File;
 
 use clap::{Parser};
 use crossterm::{
-    cursor::{DisableBlinking, MoveTo, MoveUp, MoveDown, MoveLeft, MoveRight, RestorePosition, SavePosition},
+    cursor::{position, DisableBlinking, MoveTo, MoveUp, MoveDown, MoveLeft, MoveRight, RestorePosition, SavePosition},
     event::{read, Event, KeyCode, KeyEvent, KeyModifiers},
     execute,
     style::Print,
     terminal,
-    terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType},
+    terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType, ScrollDown, ScrollUp},
     Result,
 };
 
@@ -18,20 +18,36 @@ struct Opts {
     input: String,
 }
 
+struct DisplayLines {
+    start: u16,
+    end: u16,
+}
+
+impl DisplayLines {
+    fn start_mut(&mut self) -> &mut u16 {
+        &mut self.start
+    }
+    fn end_mut(&mut self) -> &mut u16 {
+        &mut self.end
+    }
+}
+
 fn less_loop(filename: &str) -> Result<()> {
     let f = File::open(filename)?;
     let lines = ropey::Rope::from_reader(f)?;
     let line_count = lines.len_lines();
     let mut is_search_mode = false;
 
-    let (_, rows) = terminal::size()?;
+    let (_, window_rows) = terminal::size()?;
+    let mut display_lines = DisplayLines { start: 0, end: 0 };
 
-    for idx in 0..rows {
+    for idx in 0..window_rows {
         println!("{}", lines.line(idx as usize));
         execute!(stdout(), MoveTo(0, idx as u16))?;
         if idx as usize >= line_count - 1 {
             break
         }
+        *display_lines.end_mut() = idx;
     }
     execute!(stdout(), MoveTo(0, 0))?;
 
@@ -50,7 +66,9 @@ fn less_loop(filename: &str) -> Result<()> {
                 _ => (),
             };
         } else {
+            let (_, row) = position()?;
             execute!(stdout(), SavePosition)?;
+
             match event {
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('h'),
@@ -59,11 +77,29 @@ fn less_loop(filename: &str) -> Result<()> {
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('j'),
                     modifiers: _,
-                }) => execute!(stdout(), MoveDown(1))?,
+                }) => {
+                    if window_rows-3 == row {
+                        *display_lines.start_mut() = display_lines.start + 1;
+                        *display_lines.end_mut() = display_lines.end + 1;
+                        let l = lines.line(display_lines.end.into());
+                        execute!(stdout(), ScrollUp(1), Print(l), RestorePosition)?;
+                    } else {
+                        execute!(stdout(), MoveDown(1))?;
+                    }
+                },
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('k'),
                     modifiers: _,
-                }) => execute!(stdout(), MoveUp(1))?,
+                }) => {
+                    if 0 == row {
+                        *display_lines.start_mut() = display_lines.start - 1;
+                        *display_lines.end_mut() = display_lines.end - 1;
+                        let l = lines.line(display_lines.end.into());
+                        execute!(stdout(), ScrollDown(1), Print(l), RestorePosition)?;
+                    } else {
+                        execute!(stdout(), MoveUp(1))?;
+                    }
+                },
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('l'),
                     modifiers: _,
@@ -83,7 +119,7 @@ fn less_loop(filename: &str) -> Result<()> {
                     is_search_mode = true;
                     execute!(
                         stdout(),
-                        MoveTo(0, rows+1),
+                        MoveTo(0, window_rows+1),
                         Print("/"),
                     )?;
                 },
