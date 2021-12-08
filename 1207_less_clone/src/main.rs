@@ -4,7 +4,7 @@ use std::fs::File;
 use clap::{Parser};
 use crossterm::{
     cursor::{DisableBlinking, MoveTo, MoveUp, MoveDown, MoveLeft, MoveRight, RestorePosition, SavePosition},
-    event::{read, Event, KeyCode, KeyEvent},
+    event::{read, Event, KeyCode, KeyEvent, KeyModifiers},
     execute,
     style::Print,
     terminal,
@@ -68,6 +68,14 @@ fn less_loop(filename: &str) -> Result<()> {
                     code: KeyCode::Char('l'),
                     modifiers: _,
                 }) => execute!(stdout(), MoveRight(1))?,
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('u'),
+                    modifiers: KeyModifiers::CONTROL,
+                }) => execute!(stdout(), MoveUp(10))?,
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('d'),
+                    modifiers: KeyModifiers::CONTROL,
+                }) => execute!(stdout(), MoveDown(10))?,
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('/'),
                     modifiers: _,
