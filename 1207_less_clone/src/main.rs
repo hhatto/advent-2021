@@ -11,6 +11,9 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType, ScrollDown, ScrollUp},
     Result,
 };
+use grep::searcher::SearcherBuilder;
+use grep::searcher::sinks::UTF8;
+use grep::regex::RegexMatcher;
 
 #[derive(Parser)]
 #[clap(version = "0.0.1", author = "hhatto")]
@@ -30,6 +33,17 @@ impl DisplayLines {
     fn end_mut(&mut self) -> &mut u16 {
         &mut self.end
     }
+}
+
+fn search(filename: &str, search_word: &str) -> Result<Vec<(u64, String)>> {
+    let matcher = RegexMatcher::new(search_word).unwrap();
+    let mut matches: Vec<(u64, String)> = vec![];
+    let mut searcher = SearcherBuilder::new().build();
+    searcher.search_path(&matcher, filename, UTF8(|lnum, line| {
+        matches.push((lnum, line.to_string()));
+        Ok(true)
+    }))?;
+    Ok(matches)
 }
 
 fn less_loop(filename: &str) -> Result<()> {
