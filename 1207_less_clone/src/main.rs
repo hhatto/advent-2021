@@ -22,15 +22,15 @@ struct Opts {
 }
 
 struct DisplayLines {
-    start: u16,
-    end: u16,
+    start: u64,
+    end: u64,
 }
 
 impl DisplayLines {
-    fn start_mut(&mut self) -> &mut u16 {
+    fn start_mut(&mut self) -> &mut u64 {
         &mut self.start
     }
-    fn end_mut(&mut self) -> &mut u16 {
+    fn end_mut(&mut self) -> &mut u64 {
         &mut self.end
     }
 }
@@ -61,12 +61,13 @@ fn less_loop(filename: &str) -> Result<()> {
         if idx as usize >= line_count - 1 {
             break
         }
-        *display_lines.end_mut() = idx;
+        *display_lines.end_mut() = idx as u64;
     }
     execute!(stdout(), MoveTo(0, 0))?;
 
     loop {
         let event = read()?;
+        let (_, row) = position()?;
 
         if is_search_mode {
             match event {
@@ -80,7 +81,6 @@ fn less_loop(filename: &str) -> Result<()> {
                 _ => (),
             };
         } else {
-            let (_, row) = position()?;
             execute!(stdout(), SavePosition)?;
 
             match event {
@@ -95,7 +95,7 @@ fn less_loop(filename: &str) -> Result<()> {
                     if window_rows-3 == row {
                         *display_lines.start_mut() = display_lines.start + 1;
                         *display_lines.end_mut() = display_lines.end + 1;
-                        let l = lines.line(display_lines.end.into());
+                        let l = lines.line(display_lines.end as usize);
                         execute!(stdout(), ScrollUp(1), Print(l), RestorePosition)?;
                     } else {
                         execute!(stdout(), MoveDown(1))?;
@@ -108,7 +108,7 @@ fn less_loop(filename: &str) -> Result<()> {
                     if 0 == row {
                         *display_lines.start_mut() = display_lines.start - 1;
                         *display_lines.end_mut() = display_lines.end - 1;
-                        let l = lines.line(display_lines.end.into());
+                        let l = lines.line(display_lines.end as usize);
                         execute!(stdout(), ScrollDown(1), Print(l), RestorePosition)?;
                     } else {
                         execute!(stdout(), MoveUp(1))?;
