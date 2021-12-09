@@ -1,7 +1,7 @@
 use std::io::stdout;
 use std::fs::File;
 
-use clap::{Parser};
+use clap::Parser;
 use crossterm::{
     cursor::{position, DisableBlinking, MoveTo, MoveUp, MoveDown, MoveLeft, MoveRight, RestorePosition, SavePosition},
     event::{read, Event, KeyCode, KeyEvent, KeyModifiers},
