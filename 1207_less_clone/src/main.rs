@@ -52,6 +52,7 @@ fn less_loop(filename: &str) -> Result<()> {
     let line_count = lines.len_lines();
     let mut is_search_mode = false;
 
+    let mut search_word_vec: Vec<char> = [].to_vec();
     let (_, window_rows) = terminal::size()?;
     let mut display_lines = DisplayLines { start: 0, end: 0 };
 
@@ -77,6 +78,40 @@ fn less_loop(filename: &str) -> Result<()> {
                 }) => {
                     is_search_mode = false;
                     execute!(stdout(), RestorePosition)?;
+                    search_word_vec = Vec::new();
+                },
+                Event::Key(KeyEvent {
+                    code: KeyCode::Enter,
+                    modifiers: _,
+                }) => {
+                    let search_word = String::from_iter(search_word_vec.clone());
+                    let result = search(filename, search_word.as_str())?;
+                    if result.len() > 0 {
+                        // jump to result line
+                        let (lnum, _) = result[0];
+                        execute!(stdout(), SavePosition, Clear(ClearType::All))?;
+
+                        for idx in lnum..(lnum+window_rows as u64) {
+                            println!("{}", lines.line(idx as usize));
+                            execute!(stdout(), MoveTo(0, idx as u16))?;
+                            if idx as usize >= line_count - 1 {
+                                break
+                            }
+                            *display_lines.end_mut() = idx;
+                        }
+                        execute!(stdout(), RestorePosition)?;
+                    }
+
+                    is_search_mode = false;
+                    execute!(stdout(), RestorePosition)?;
+                    search_word_vec = Vec::new();
+                },
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char(c),
+                    modifiers: _,
+                }) => {
+                    search_word_vec.push(c);
+                    execute!(stdout(), Print(c))?;
                 },
                 _ => (),
             };
