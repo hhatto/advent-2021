@@ -89,15 +89,15 @@ fn less_loop(filename: &str) -> Result<()> {
                     if result.len() > 0 {
                         // jump to result line
                         let (lnum, _) = result[0];
-                        execute!(stdout(), SavePosition, Clear(ClearType::All))?;
+                        execute!(stdout(), RestorePosition, SavePosition, Clear(ClearType::All))?;
 
-                        for idx in lnum..(lnum+window_rows as u64) {
-                            println!("{}", lines.line(idx as usize));
-                            execute!(stdout(), MoveTo(0, idx as u16))?;
+                        for idx in 0..window_rows {
+                            println!("{}", lines.line(lnum as usize + idx as usize));
+                            execute!(stdout(), MoveTo(0, idx))?;
                             if idx as usize >= line_count - 1 {
                                 break
                             }
-                            *display_lines.end_mut() = idx;
+                            *display_lines.end_mut() = idx as u64;
                         }
                         execute!(stdout(), RestorePosition)?;
                     }
