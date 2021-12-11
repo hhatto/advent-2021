@@ -120,11 +120,11 @@ fn less_loop(filename: &str) -> Result<()> {
 
             match event {
                 Event::Key(KeyEvent {
-                    code: KeyCode::Char('h'),
+                    code: KeyCode::Char('h') | KeyCode::Left,
                     modifiers: _,
                 }) => execute!(stdout(), MoveLeft(1))?,
                 Event::Key(KeyEvent {
-                    code: KeyCode::Char('j'),
+                    code: KeyCode::Char('j') | KeyCode::Down,
                     modifiers: _,
                 }) => {
                     if window_rows-3 == row {
@@ -137,7 +137,7 @@ fn less_loop(filename: &str) -> Result<()> {
                     }
                 },
                 Event::Key(KeyEvent {
-                    code: KeyCode::Char('k'),
+                    code: KeyCode::Char('k') | KeyCode::Up,
                     modifiers: _,
                 }) => {
                     if 0 == row {
@@ -150,7 +150,7 @@ fn less_loop(filename: &str) -> Result<()> {
                     }
                 },
                 Event::Key(KeyEvent {
-                    code: KeyCode::Char('l'),
+                    code: KeyCode::Char('l') | KeyCode::Right,
                     modifiers: _,
                 }) => execute!(stdout(), MoveRight(1))?,
                 Event::Key(KeyEvent {
