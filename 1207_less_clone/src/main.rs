@@ -200,7 +200,6 @@ fn main() -> Result<()> {
 
     execute!(
         stdout,
-        SavePosition,
         MoveTo(0, 0),
         DisableBlinking,
     )?;
