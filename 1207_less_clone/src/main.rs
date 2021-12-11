@@ -35,6 +35,9 @@ impl DisplayLines {
     }
 }
 
+const STATUS_LINE_OFFSET: usize = 2;
+const DISPLAY_BOTTOM_LINE_OFFSET: usize = STATUS_LINE_OFFSET + 1;
+
 fn search(filename: &str, search_word: &str) -> Result<Vec<(u64, String)>> {
     let matcher = RegexMatcher::new(search_word).unwrap();
     let mut matches: Vec<(u64, String)> = vec![];
@@ -49,20 +52,21 @@ fn search(filename: &str, search_word: &str) -> Result<Vec<(u64, String)>> {
 fn less_loop(filename: &str) -> Result<()> {
     let f = File::open(filename)?;
     let lines = ropey::Rope::from_reader(f)?;
-    let line_count = lines.len_lines();
+    let line_count = lines.len_lines() - 1;
     let mut is_search_mode = false;
 
     let mut search_word_vec: Vec<char> = [].to_vec();
     let (_, window_rows) = terminal::size()?;
     let mut display_lines = DisplayLines { start: 0, end: 0 };
 
-    for idx in 0..window_rows {
-        println!("{}", lines.line(idx as usize));
-        execute!(stdout(), MoveTo(0, idx as u16))?;
-        if idx as usize >= line_count - 1 {
+    for idx in 0..(window_rows - STATUS_LINE_OFFSET as u16) {
+        *display_lines.end_mut() = idx as u64;
+        // NOTE: use format, because debug print
+        let disp = format!("{}", lines.line(idx as usize));
+        execute!(stdout(), MoveTo(0, idx as u16), Print(disp))?;
+        if idx >= line_count as u16 {
             break
         }
-        *display_lines.end_mut() = idx as u64;
     }
     execute!(stdout(), MoveTo(0, 0))?;
 
@@ -127,12 +131,13 @@ fn less_loop(filename: &str) -> Result<()> {
                     code: KeyCode::Char('j') | KeyCode::Down,
                     modifiers: _,
                 }) => {
-                    if window_rows-3 == row {
+                    if (window_rows - DISPLAY_BOTTOM_LINE_OFFSET as u16) == row && line_count != (display_lines.end + 1) as usize {
                         *display_lines.start_mut() = display_lines.start + 1;
                         *display_lines.end_mut() = display_lines.end + 1;
                         let l = lines.line(display_lines.end as usize);
-                        execute!(stdout(), ScrollUp(1), Print(l), RestorePosition)?;
-                    } else {
+                        // NOTE: use format because debug print
+                        execute!(stdout(), ScrollUp(1), Print(format!("{}", l)), RestorePosition)?;
+                    } else if (window_rows - DISPLAY_BOTTOM_LINE_OFFSET as u16) != row && line_count != (row + 1) as usize {
                         execute!(stdout(), MoveDown(1))?;
                     }
                 },
@@ -140,12 +145,13 @@ fn less_loop(filename: &str) -> Result<()> {
                     code: KeyCode::Char('k') | KeyCode::Up,
                     modifiers: _,
                 }) => {
-                    if 0 == row {
+                    if 0 == row && display_lines.start > 0 {
                         *display_lines.start_mut() = display_lines.start - 1;
                         *display_lines.end_mut() = display_lines.end - 1;
-                        let l = lines.line(display_lines.end as usize);
-                        execute!(stdout(), ScrollDown(1), Print(l), RestorePosition)?;
-                    } else {
+                        let l = lines.line(display_lines.start as usize);
+                        // NOTE: use format because debug print
+                        execute!(stdout(), ScrollDown(1), Print(format!("{}", l)), RestorePosition)?;
+                    } else if 0 != row {
                         execute!(stdout(), MoveUp(1))?;
                     }
                 },
