@@ -6,7 +6,7 @@ use crossterm::{
     cursor::{position, DisableBlinking, MoveTo, MoveUp, MoveDown, MoveLeft, MoveRight, RestorePosition, SavePosition},
     event::{read, Event, KeyCode, KeyEvent, KeyModifiers},
     execute,
-    style::Print,
+    style::{Color, Print, ResetColor, SetBackgroundColor},
     terminal,
     terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType, ScrollDown, ScrollUp},
     Result,
@@ -49,6 +49,50 @@ fn search(filename: &str, search_word: &str) -> Result<Vec<(u64, String)>> {
     Ok(matches)
 }
 
+fn clear_status_line() -> Result<()> {
+    let (window_columns, window_rows) = terminal::size()?;
+
+    let mut status_line = Vec::new();
+    for _ in 0..window_columns {
+        status_line.push(" ");
+    }
+
+    execute!(
+        stdout(),
+        SavePosition,
+        MoveTo(0, window_rows - STATUS_LINE_OFFSET as u16),
+        Print(String::from_iter(status_line)),
+        RestorePosition,
+    )?;
+
+    Ok(())
+}
+
+fn render_status_line(line_count: u64, max_line_count: usize) -> Result<()> {
+    let (window_columns, window_rows) = terminal::size()?;
+
+    let mut status_line = Vec::new();
+    for _ in 0..window_columns {
+        status_line.push(" ");
+    }
+
+    let percentage = line_count as f64 / max_line_count as f64 * 100.;
+
+    execute!(
+        stdout(),
+        SavePosition,
+        MoveTo(0, window_rows - STATUS_LINE_OFFSET as u16),
+        SetBackgroundColor(Color::Blue),
+        Print(String::from_iter(status_line)),
+        MoveTo(0, window_rows - STATUS_LINE_OFFSET as u16),
+        Print(format!("{}/{}({:3.0}%)", line_count, max_line_count, percentage as usize)),
+        ResetColor,
+        RestorePosition,
+    )?;
+
+    Ok(())
+}
+
 fn less_loop(filename: &str) -> Result<()> {
     let f = File::open(filename)?;
     let lines = ropey::Rope::from_reader(f)?;
@@ -71,8 +115,12 @@ fn less_loop(filename: &str) -> Result<()> {
     execute!(stdout(), MoveTo(0, 0))?;
 
     loop {
-        let event = read()?;
         let (_, row) = position()?;
+        let _ = render_status_line(display_lines.start + 1 + row as u64, line_count);
+
+        let event = read()?;
+
+        let _ = clear_status_line();
 
         if is_search_mode {
             match event {
